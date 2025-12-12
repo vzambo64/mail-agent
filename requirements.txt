@@ -1,0 +1,25 @@
+# Mail-Agent Dependencies
+# AI-powered automatic email reply agent for Postfix
+
+# LLM Providers
+openai>=1.12.0
+anthropic>=0.18.0
+google-generativeai>=0.4.0
+ollama>=0.1.6
+
+# Email handling
+aiosmtplib>=3.0.0
+imapclient>=3.0.0
+email-validator>=2.1.0
+
+# Configuration
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+
+# Utilities
+aiofiles>=23.2.1
+tenacity>=8.2.3
+
+# Logging
+structlog>=24.1.0
+

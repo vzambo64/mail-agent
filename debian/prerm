@@ -1,0 +1,47 @@
+#!/bin/bash
+# Mail-Agent Pre-Removal Script
+# Runs before package files are removed
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        echo "Removing Postfix configuration for mail-agent..."
+        
+        MASTER_CF="/etc/postfix/master.cf"
+        TRANSPORT_MAP="/etc/postfix/transport_mail_agent"
+        MAIN_CF="/etc/postfix/main.cf"
+        
+        # Remove from master.cf
+        if [ -f "$MASTER_CF" ]; then
+            # Remove the mail-agent transport block
+            sed -i '/^# Mail-Agent AI Auto-Reply/,/^$/d' "$MASTER_CF" 2>/dev/null || true
+            sed -i '/^mail-agent unix/d' "$MASTER_CF" 2>/dev/null || true
+        fi
+        
+        # Remove transport map entries
+        if [ -f "$TRANSPORT_MAP" ]; then
+            rm -f "$TRANSPORT_MAP"
+            rm -f "$TRANSPORT_MAP.db"
+        fi
+        
+        # Update main.cf
+        if [ -f "$MAIN_CF" ]; then
+            sed -i 's/hash:\/etc\/postfix\/transport_mail_agent, //g' "$MAIN_CF" 2>/dev/null || true
+            sed -i 's/, hash:\/etc\/postfix\/transport_mail_agent//g' "$MAIN_CF" 2>/dev/null || true
+            sed -i 's/hash:\/etc\/postfix\/transport_mail_agent//g' "$MAIN_CF" 2>/dev/null || true
+            # Remove empty transport_maps line
+            sed -i '/^transport_maps = $/d' "$MAIN_CF" 2>/dev/null || true
+        fi
+        
+        # Reload Postfix
+        if systemctl is-active --quiet postfix; then
+            systemctl reload postfix 2>/dev/null || true
+        fi
+        
+        echo "Postfix configuration removed."
+        ;;
+esac
+
+exit 0
+

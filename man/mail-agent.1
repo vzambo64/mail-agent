@@ -1,0 +1,230 @@
+.\" Man page for mail-agent
+.TH MAIL-AGENT 1 "December 2024" "mail-agent 1.0.0" "User Commands"
+
+.SH NAME
+mail-agent \- AI-powered automatic email reply agent for Postfix
+
+.SH SYNOPSIS
+.B mail-agent
+[\fIOPTIONS\fR]
+
+.SH DESCRIPTION
+.B mail-agent
+is a Postfix mail filter that intercepts incoming emails, matches them against
+configurable sender-based rules, and generates intelligent automatic replies
+using various LLM providers (OpenAI, Anthropic, Google Gemini, or local Ollama).
+
+The filter reads email from standard input (as invoked by Postfix), processes it
+according to configured rules, generates an AI response if matched, and either
+sends the reply immediately via SMTP or saves it to an IMAP Drafts folder for
+manual review.
+
+.SH OPTIONS
+.TP
+.B \-\-config \fIPATH\fR
+Path to settings.yaml configuration file.
+Default: /etc/mail-agent/settings.yaml
+
+.TP
+.B \-\-rules \fIPATH\fR
+Path to rules.yaml configuration file.
+Default: /etc/mail-agent/rules.yaml
+
+.TP
+.B \-\-dry\-run
+Process email but don't send reply or save to drafts. Useful for testing.
+
+.TP
+.B \-\-validate
+Validate configuration files and exit.
+
+.TP
+.B \-\-test
+Read test email from stdin, show which rules would match, and display
+the generated reply without sending.
+
+.TP
+.B \-\-version
+Display version information and exit.
+
+.TP
+.B \-\-help
+Display help message and exit.
+
+.SH CONFIGURATION FILES
+.TP
+.B /etc/mail-agent/settings.yaml
+Main configuration file containing LLM provider settings, SMTP/IMAP
+configuration, and global options.
+
+.TP
+.B /etc/mail-agent/rules.yaml
+Auto-reply rules defining sender patterns, LLM providers, delivery modes,
+and system prompts for each rule.
+
+.TP
+.B /etc/mail-agent/.env
+Environment file containing sensitive data like API keys and passwords.
+Should have permissions 600.
+
+.SH POSTFIX INTEGRATION
+mail-agent is invoked by Postfix as a pipe transport. Configuration in
+/etc/postfix/master.cf:
+
+.nf
+mail-agent unix - n n - 10 pipe
+  flags=Rq user=mail-agent null_sender=
+  argv=/opt/mail-agent/venv/bin/python -m src.main
+.fi
+
+Recipients are routed via transport map in /etc/postfix/transport_mail_agent:
+
+.nf
+support@example.com    mail-agent:
+sales@example.com      mail-agent:
+.fi
+
+.SH LLM PROVIDERS
+.TP
+.B openai
+OpenAI GPT models (GPT-4, GPT-3.5-turbo). Requires OPENAI_API_KEY.
+
+.TP
+.B anthropic
+Anthropic Claude models. Requires ANTHROPIC_API_KEY.
+
+.TP
+.B google
+Google Gemini models. Requires GOOGLE_API_KEY.
+
+.TP
+.B ollama
+Local Ollama models (Llama, Mistral, etc.). Requires Ollama server running.
+
+.SH DELIVERY MODES
+.TP
+.B send
+Reply is sent immediately via SMTP to the original sender.
+
+.TP
+.B draft
+Reply is saved to IMAP Drafts folder for manual review before sending.
+
+.SH EXAMPLES
+Test configuration:
+.nf
+  mail-agent --validate
+.fi
+
+Process a test email:
+.nf
+  echo "From: test@example.com
+  To: support@mycompany.com
+  Subject: Question
+
+  Hello, I need help." | mail-agent --test
+.fi
+
+Dry run (no actual sending):
+.nf
+  cat email.eml | mail-agent --dry-run
+.fi
+
+.SH FILES
+.TP
+.B /opt/mail-agent/
+Application installation directory
+
+.TP
+.B /etc/mail-agent/
+Configuration directory
+
+.TP
+.B /var/log/mail-agent/
+Log files directory
+
+.TP
+.B /etc/postfix/transport_mail_agent
+Postfix transport map for recipient routing
+
+.SH ENVIRONMENT
+.TP
+.B OPENAI_API_KEY
+API key for OpenAI provider
+
+.TP
+.B ANTHROPIC_API_KEY
+API key for Anthropic provider
+
+.TP
+.B GOOGLE_API_KEY
+API key for Google Gemini provider
+
+.TP
+.B IMAP_USERNAME
+Username for IMAP connection (draft mode)
+
+.TP
+.B IMAP_PASSWORD
+Password for IMAP connection (draft mode)
+
+.SH EXIT STATUS
+.TP
+.B 0
+Success - email processed (or no matching rule)
+
+.TP
+.B 1
+Configuration error
+
+.TP
+.B 2
+LLM provider error (email still delivered, reply not sent)
+
+.TP
+.B 75
+Temporary failure (Postfix will retry)
+
+.SH LOGGING
+Logs are written to /var/log/mail-agent/mail-agent.log with the following levels:
+.TP
+.B ERROR
+Critical failures requiring attention
+.TP
+.B WARNING
+Non-fatal issues (e.g., rate limiting triggered)
+.TP
+.B INFO
+Normal operation (email processed, reply sent)
+.TP
+.B DEBUG
+Detailed debugging information
+
+.SH SECURITY
+.IP \(bu 2
+Runs as unprivileged 'mail-agent' user
+.IP \(bu 2
+API keys stored in .env file with 600 permissions
+.IP \(bu 2
+IMAP connections use TLS by default
+.IP \(bu 2
+Never blocks email delivery on AI errors
+
+.SH BUGS
+Report bugs at: https://github.com/vzambo64/mail-agent/issues
+
+Or contact: mail-agent@zamboviktor.hu
+
+.SH SEE ALSO
+.BR postfix (1),
+.BR master (5),
+.BR transport (5),
+.BR dovecot (1)
+
+.SH AUTHOR
+Viktor Zambo <mail-agent@zamboviktor.hu>
+
+.SH COPYRIGHT
+Copyright (C) 2024 Viktor Zambo.
+License: MIT
+

@@ -1,0 +1,4 @@
+/etc/mail-agent/settings.yaml
+/etc/mail-agent/rules.yaml
+/etc/mail-agent/.env
+

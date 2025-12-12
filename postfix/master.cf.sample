@@ -1,0 +1,58 @@
+# Mail-Agent Postfix Configuration
+# Add these lines to /etc/postfix/master.cf
+#
+# This configures Postfix to pipe emails to the mail-agent filter
+# for specified recipients.
+
+# =============================================================================
+# Add to /etc/postfix/master.cf:
+# =============================================================================
+
+# Mail-Agent AI Auto-Reply Filter
+mail-agent unix - n n - 10 pipe
+  flags=Rq user=mail-agent null_sender=
+  argv=/opt/mail-agent/venv/bin/python -m src.main
+
+# =============================================================================
+# Create /etc/postfix/transport_mail_agent:
+# =============================================================================
+# Route specific recipients through the mail-agent filter
+# Example entries:
+#
+# support@yourdomain.com    mail-agent:
+# sales@yourdomain.com      mail-agent:
+# info@yourdomain.com       mail-agent:
+#
+# After editing, run:
+#   sudo postmap /etc/postfix/transport_mail_agent
+
+# =============================================================================
+# Add to /etc/postfix/main.cf:
+# =============================================================================
+# transport_maps = hash:/etc/postfix/transport_mail_agent
+#
+# If you already have transport_maps, add the new map:
+# transport_maps = hash:/etc/postfix/transport, hash:/etc/postfix/transport_mail_agent
+
+# =============================================================================
+# Apply changes:
+# =============================================================================
+# sudo postmap /etc/postfix/transport_mail_agent
+# sudo postfix check
+# sudo systemctl reload postfix
+
+# =============================================================================
+# Explanation of flags:
+# =============================================================================
+# flags=Rq:
+#   R = Include Return-Path header
+#   q = Quote problematic characters in addresses
+#
+# user=mail-agent:
+#   Run the filter as the mail-agent user (not root)
+#
+# null_sender=:
+#   Don't set a sender (important for bounces)
+#
+# 10 = Maximum concurrent processes
+

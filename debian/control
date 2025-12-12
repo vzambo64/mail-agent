@@ -1,0 +1,26 @@
+Package: mail-agent
+Version: 1.0.0
+Section: mail
+Priority: optional
+Architecture: all
+Pre-Depends: curl, ca-certificates
+Depends: postfix, lsb-release, gnupg, software-properties-common
+Recommends: dovecot-imapd
+Suggests: ollama
+Maintainer: Viktor Zambo <mail-agent@zamboviktor.hu>
+Homepage: https://github.com/vzambo64/mail-agent
+Description: AI-powered automatic email reply agent for Postfix
+ Mail-Agent intercepts incoming emails and generates intelligent
+ automatic replies using configurable LLM providers (OpenAI,
+ Anthropic, Google Gemini, or local Ollama models).
+ .
+ Compatible with Ubuntu 18.04 (Bionic) and later versions.
+ All dependencies are managed automatically during installation.
+ .
+ Features:
+  - Multiple LLM provider support (OpenAI, Anthropic, Google, Ollama)
+  - Sender-based rule matching with regex patterns
+  - Send immediately or save to IMAP Drafts for review
+  - Custom system prompts per rule
+  - Comprehensive logging and error handling
+

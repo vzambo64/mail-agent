@@ -1,0 +1,97 @@
+# Mail-Agent Auto-Reply Rules
+# Copy this file to /etc/mail-agent/rules.yaml and customize
+
+rules:
+  # Skip rules - emails matching these won't get auto-replies
+  - name: "Skip No-Reply Addresses"
+    sender_pattern: "^(no-?reply|noreply|mailer-daemon|postmaster|bounce)@"
+    action: "skip"
+    enabled: true
+
+  - name: "Skip Mailing Lists"
+    sender_pattern: ".*"
+    headers_match:
+      List-Unsubscribe: ".*"
+    action: "skip"
+    enabled: true
+
+  # Example: Customer Support Auto-Reply
+  - name: "Customer Support"
+    sender_pattern: ".*"
+    recipient_filter: "support@yourdomain.com"
+    llm_provider: "anthropic"
+    delivery_mode: "send"
+    priority: 100
+    system_prompt: |
+      You are a helpful customer support assistant for [Your Company].
+      
+      Guidelines:
+      - Be friendly, professional, and concise
+      - If you don't know the answer, say so and offer to escalate
+      - Keep responses under 3 paragraphs
+      - Always sign as "[Your Company] Support Team"
+      
+      Company information:
+      - Business hours: Mon-Fri 9am-5pm
+      - Phone: 1-800-XXX-XXXX
+      - Website: https://yourdomain.com
+    enabled: true
+
+  # Example: Sales Inquiries (save to drafts for review)
+  - name: "Sales Inquiries"
+    sender_pattern: ".*"
+    recipient_filter: "sales@yourdomain.com"
+    llm_provider: "openai"
+    delivery_mode: "draft"
+    priority: 90
+    system_prompt: |
+      You are a sales assistant for [Your Company].
+      
+      Product catalog:
+      - Basic Plan: $X/month - Description
+      - Pro Plan: $Y/month - Description
+      - Enterprise: Custom pricing
+      
+      Guidelines:
+      - Focus on understanding customer needs
+      - Suggest appropriate products
+      - Offer to schedule a demo
+      - Be helpful but not pushy
+      - Sign as "[Your Company] Sales Team"
+    enabled: true
+
+  # Example: VIP Customers (high priority, always review)
+  - name: "VIP Customers"
+    sender_pattern: ".*@enterprise-client\\.com$"
+    llm_provider: "anthropic"
+    delivery_mode: "draft"
+    priority: 200
+    system_prompt: |
+      You are handling a VIP enterprise customer.
+      Be extra thorough and professional.
+      Offer personalized attention and priority support.
+    enabled: true
+
+  # Example: Local Ollama for internal emails
+  - name: "Internal Requests"
+    sender_pattern: ".*@yourdomain\\.com$"
+    llm_provider: "ollama"
+    delivery_mode: "send"
+    priority: 50
+    system_prompt: |
+      You are an internal assistant for [Your Company].
+      Be direct and efficient. This is for internal staff.
+    enabled: false
+
+  # Default fallback (lowest priority)
+  - name: "Default Reply"
+    sender_pattern: ".*"
+    llm_provider: "openai"
+    delivery_mode: "send"
+    priority: 1
+    system_prompt: |
+      You are a helpful email assistant.
+      Respond professionally and concisely.
+      If the email requires human attention, politely say so.
+    enabled: false
+

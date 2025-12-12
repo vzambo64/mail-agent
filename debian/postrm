@@ -1,0 +1,73 @@
+#!/bin/bash
+# Mail-Agent Post-Removal Script
+# Runs after package files are removed
+
+set -e
+
+INSTALL_DIR="/opt/mail-agent"
+CONFIG_DIR="/etc/mail-agent"
+LOG_DIR="/var/log/mail-agent"
+SERVICE_USER="mail-agent"
+
+case "$1" in
+    purge)
+        echo "Purging mail-agent..."
+        
+        # Remove configuration files
+        if [ -d "$CONFIG_DIR" ]; then
+            rm -rf "$CONFIG_DIR"
+            echo "Removed $CONFIG_DIR"
+        fi
+        
+        # Remove logs
+        if [ -d "$LOG_DIR" ]; then
+            rm -rf "$LOG_DIR"
+            echo "Removed $LOG_DIR"
+        fi
+        
+        # Remove logrotate config
+        rm -f /etc/logrotate.d/mail-agent
+        
+        # Remove user
+        if getent passwd "$SERVICE_USER" > /dev/null; then
+            userdel "$SERVICE_USER" 2>/dev/null || true
+            echo "Removed user: $SERVICE_USER"
+        fi
+        
+        # Remove application directory
+        if [ -d "$INSTALL_DIR" ]; then
+            rm -rf "$INSTALL_DIR"
+            echo "Removed $INSTALL_DIR"
+        fi
+        
+        # Remove install log
+        rm -f /var/log/mail-agent-install.log
+        
+        echo ""
+        echo "Note: Python from deadsnakes PPA (if installed) was not removed."
+        echo "Run 'sudo add-apt-repository --remove ppa:deadsnakes/ppa' to remove it."
+        echo ""
+        echo "mail-agent purged successfully."
+        ;;
+        
+    remove)
+        # Keep config and logs on regular remove
+        echo ""
+        echo "Configuration preserved in $CONFIG_DIR"
+        echo "Logs preserved in $LOG_DIR"
+        echo "Run 'apt purge mail-agent' to remove all files."
+        echo ""
+        ;;
+        
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Nothing to do
+        ;;
+        
+    *)
+        echo "postrm called with unknown argument: $1" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
+

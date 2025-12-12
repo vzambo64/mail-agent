@@ -1,0 +1,79 @@
+# Mail-Agent Settings Configuration
+# Copy this file to /etc/mail-agent/settings.yaml and customize
+
+# LLM Provider Configuration
+llm:
+  # Default provider to use when not specified in rules
+  default_provider: "openai"
+  
+  providers:
+    # OpenAI Configuration
+    openai:
+      api_key: "${OPENAI_API_KEY}"
+      model: "gpt-4-turbo"
+      max_tokens: 1024
+      timeout: 60
+    
+    # Anthropic Claude Configuration
+    anthropic:
+      api_key: "${ANTHROPIC_API_KEY}"
+      model: "claude-sonnet-4-20250514"
+      max_tokens: 1024
+      timeout: 60
+    
+    # Google Gemini Configuration
+    google:
+      api_key: "${GOOGLE_API_KEY}"
+      model: "gemini-pro"
+      max_tokens: 1024
+      timeout: 60
+    
+    # Ollama Local Models Configuration
+    ollama:
+      base_url: "http://localhost:11434"
+      model: "llama3"
+      max_tokens: 1024
+      timeout: 120
+
+# Delivery Configuration
+delivery:
+  # Default delivery mode: "send" or "draft"
+  default_mode: "send"
+
+# SMTP Mail Configuration (for sending replies)
+mail:
+  smtp_host: "localhost"
+  smtp_port: 25
+  from_address: "auto-reply@yourdomain.com"
+  # Optional SMTP authentication
+  # smtp_user: ""
+  # smtp_password: ""
+  # use_tls: false
+  # use_starttls: false
+
+# IMAP Configuration (for draft mode)
+imap:
+  host: "localhost"
+  port: 993
+  use_ssl: true
+  username: "${IMAP_USERNAME}"
+  password: "${IMAP_PASSWORD}"
+  drafts_folder: "Drafts"
+  # For Dovecot with INBOX namespace:
+  # drafts_folder: "INBOX.Drafts"
+
+# Rate Limiting (optional)
+rate_limiting:
+  enabled: false
+  max_replies_per_sender: 3
+  sender_cooldown_hours: 24
+  max_replies_per_minute: 10
+  skip_if_rate_limited: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: "/var/log/mail-agent/mail-agent.log"
+  max_size_mb: 100
+  backup_count: 5
+

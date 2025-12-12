@@ -1,0 +1,176 @@
+#!/bin/bash
+# Mail-Agent Post-Installation Script
+# Runs after package files are installed
+
+set -e
+
+INSTALL_DIR="/opt/mail-agent"
+CONFIG_DIR="/etc/mail-agent"
+LOG_DIR="/var/log/mail-agent"
+SERVICE_USER="mail-agent"
+PYTHON_MIN_VERSION="3.10"
+PYTHON_CMD=""
+LOG_FILE="/var/log/mail-agent-install.log"
+
+log() { 
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+# Detect Ubuntu version and install Python 3.10+ if needed
+install_python() {
+    local ubuntu_version
+    ubuntu_version=$(lsb_release -rs 2>/dev/null || echo "unknown")
+    
+    log "Detected Ubuntu version: ${ubuntu_version}"
+    
+    # Check if Python 3.10+ is already available
+    for cmd in python3.12 python3.11 python3.10 python3; do
+        if command -v "$cmd" &> /dev/null; then
+            local version
+            version=$($cmd -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+            if [ "$(printf '%s\n' "$PYTHON_MIN_VERSION" "$version" | sort -V | head -n1)" = "$PYTHON_MIN_VERSION" ]; then
+                PYTHON_CMD="$cmd"
+                log "Found compatible Python: $cmd ($version)"
+                return 0
+            fi
+        fi
+    done
+    
+    # Python 3.10+ not found - install from deadsnakes PPA
+    log "Python 3.10+ not found. Installing from deadsnakes PPA..."
+    
+    # Add deadsnakes PPA
+    if [ ! -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-*.list ]; then
+        apt-get update
+        apt-get install -y software-properties-common
+        add-apt-repository -y ppa:deadsnakes/ppa
+        apt-get update
+    fi
+    
+    # Install Python 3.10
+    apt-get install -y python3.10 python3.10-venv python3.10-distutils
+    
+    # Install pip for Python 3.10
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+    
+    PYTHON_CMD="python3.10"
+    log "Installed Python 3.10 from deadsnakes PPA"
+}
+
+case "$1" in
+    configure)
+        # Create log directory first for install logging
+        mkdir -p "$LOG_DIR"
+        
+        log "Starting mail-agent post-installation..."
+        
+        # Install/detect Python 3.10+
+        install_python
+        
+        # Create system user if not exists
+        if ! getent passwd "$SERVICE_USER" > /dev/null; then
+            useradd -r -s /bin/false -d "$INSTALL_DIR" "$SERVICE_USER"
+            log "Created user: $SERVICE_USER"
+        fi
+        
+        # Set ownership
+        chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
+        chown -R "$SERVICE_USER:$SERVICE_USER" "$CONFIG_DIR"
+        chown -R "$SERVICE_USER:$SERVICE_USER" "$LOG_DIR"
+        chmod 600 "$CONFIG_DIR/.env" 2>/dev/null || true
+        
+        # Create/update Python virtual environment
+        log "Setting up Python virtual environment..."
+        rm -rf "$INSTALL_DIR/venv"
+        $PYTHON_CMD -m venv "$INSTALL_DIR/venv"
+        "$INSTALL_DIR/venv/bin/pip" install --upgrade pip
+        "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
+        
+        # Save Python command for future use
+        echo "PYTHON_CMD=$PYTHON_CMD" > "$INSTALL_DIR/.python-version"
+        
+        # Setup logrotate
+        cat > /etc/logrotate.d/mail-agent << 'EOF'
+/var/log/mail-agent/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 640 mail-agent mail-agent
+}
+EOF
+        
+        # Configure Postfix
+        MASTER_CF="/etc/postfix/master.cf"
+        TRANSPORT_MAP="/etc/postfix/transport_mail_agent"
+        MAIN_CF="/etc/postfix/main.cf"
+        
+        # Add mail-agent transport if not present
+        if ! grep -q "mail-agent unix" "$MASTER_CF" 2>/dev/null; then
+            cat >> "$MASTER_CF" << 'EOF'
+
+# Mail-Agent AI Auto-Reply Filter
+mail-agent unix - n n - 10 pipe
+  flags=Rq user=mail-agent null_sender=
+  argv=/opt/mail-agent/venv/bin/python -m src.main
+EOF
+            log "Added mail-agent transport to master.cf"
+        fi
+        
+        # Create transport map if not exists
+        if [ ! -f "$TRANSPORT_MAP" ]; then
+            cat > "$TRANSPORT_MAP" << 'EOF'
+# Mail-Agent Transport Map
+# Add recipients that should receive auto-replies
+# Format: email@domain.com    mail-agent:
+EOF
+            postmap "$TRANSPORT_MAP"
+            log "Created transport map"
+        fi
+        
+        # Update main.cf if needed
+        if ! grep -q "transport_mail_agent" "$MAIN_CF" 2>/dev/null; then
+            if grep -q "^transport_maps" "$MAIN_CF"; then
+                sed -i 's/^transport_maps = /transport_maps = hash:\/etc\/postfix\/transport_mail_agent, /' "$MAIN_CF"
+            else
+                echo "transport_maps = hash:/etc/postfix/transport_mail_agent" >> "$MAIN_CF"
+            fi
+            log "Updated main.cf with transport_maps"
+        fi
+        
+        # Reload Postfix
+        systemctl reload postfix 2>/dev/null || true
+        
+        # Run debconf configuration for first install
+        if [ -z "$2" ]; then
+            log "First installation - configuration needed"
+        fi
+        
+        log "Mail-agent post-installation complete"
+        
+        echo ""
+        echo "=========================================="
+        echo "Mail-Agent installed successfully!"
+        echo "=========================================="
+        echo "Python: $PYTHON_CMD"
+        echo "Config: $CONFIG_DIR/settings.yaml"
+        echo "Logs:   $LOG_DIR/"
+        echo ""
+        echo "Next steps:"
+        echo "1. Edit $CONFIG_DIR/settings.yaml"
+        echo "2. Edit $CONFIG_DIR/rules.yaml"
+        echo "3. Add API keys to $CONFIG_DIR/.env"
+        echo "4. Add recipients to $TRANSPORT_MAP"
+        echo "5. Run: sudo postmap $TRANSPORT_MAP"
+        echo "6. Run: sudo systemctl reload postfix"
+        echo ""
+        echo "Documentation: man mail-agent"
+        echo "Support: mail-agent@zamboviktor.hu"
+        echo ""
+        ;;
+esac
+
+exit 0
+
