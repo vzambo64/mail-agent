@@ -111,10 +111,12 @@ mail-agent/
 Parses incoming emails from stdin (Postfix pipe).
 
 **Key Classes:**
+
 - `ParsedEmail` - Dataclass with parsed email fields
 - `EmailParser` - Parser implementation
 
 **Key Methods:**
+
 - `parse_from_stdin()` - Read and parse from stdin
 - `parse_from_string()` - Parse from raw string
 
@@ -123,10 +125,12 @@ Parses incoming emails from stdin (Postfix pipe).
 Matches emails against configured rules.
 
 **Key Classes:**
+
 - `MatchedRule` - Matched rule data
 - `RuleMatcher` - Matching engine
 
 **Key Methods:**
+
 - `match(email)` - Find first matching rule
 - `match_all(email)` - Find all matching rules
 - `should_skip(email)` - Check skip conditions
@@ -136,9 +140,11 @@ Matches emails against configured rules.
 Abstract LLM interface with multiple implementations.
 
 **Base Class:** `BaseLLMProvider`
+
 - `generate_reply(email_content, system_prompt, subject)` - Generate reply
 
 **Implementations:**
+
 - `OpenAIProvider` - GPT-4, GPT-3.5
 - `AnthropicProvider` - Claude models
 - `GoogleProvider` - Gemini
@@ -151,6 +157,7 @@ Abstract LLM interface with multiple implementations.
 Orchestrates LLM calls.
 
 **Key Classes:**
+
 - `GeneratedReply` - Generated reply data
 - `ReplyGenerator` - Generation orchestration
 
@@ -159,6 +166,7 @@ Orchestrates LLM calls.
 Routes replies to SMTP or IMAP.
 
 **Key Classes:**
+
 - `DeliveryMode` - Enum (SEND, DRAFT)
 - `DeliveryResult` - Delivery result data
 - `DeliveryRouter` - Routing logic
@@ -168,6 +176,7 @@ Routes replies to SMTP or IMAP.
 Sends replies via SMTP.
 
 **Key Classes:**
+
 - `MailSender` - SMTP client wrapper
 
 ### 7. Drafts Handler (`src/drafts_handler.py`)
@@ -175,6 +184,7 @@ Sends replies via SMTP.
 Saves replies to IMAP Drafts.
 
 **Key Classes:**
+
 - `DraftsHandler` - IMAP client wrapper
 
 ---
@@ -201,7 +211,7 @@ llm:
       model: "llama3"
 
 delivery:
-  default_mode: "send"  # or "draft"
+  default_mode: "send" # or "draft"
 
 mail:
   smtp_host: "localhost"
@@ -222,7 +232,7 @@ imap:
 ```yaml
 rules:
   - name: "Rule Name"
-    sender_pattern: ".*@domain\\.com$"  # Regex
+    sender_pattern: ".*@domain\\.com$" # Regex
     recipient_filter: "support@domain.com"
     llm_provider: "openai"
     delivery_mode: "send"
@@ -256,6 +266,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
+
 - `feat` - New feature
 - `fix` - Bug fix
 - `docs` - Documentation
@@ -265,6 +276,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 - `chore` - Maintenance
 
 **Scopes:**
+
 - `llm` - LLM providers
 - `rules` - Rule matching
 - `delivery` - Delivery routing
@@ -276,6 +288,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 - `docs` - Documentation
 
 **Examples:**
+
 ```
 feat(llm): add support for Mistral AI provider
 fix(imap): handle connection timeout gracefully
@@ -355,20 +368,20 @@ cat email.eml | mail-agent --dry-run
 
 ## Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| openai | >=1.12.0 | OpenAI API client |
-| anthropic | >=0.18.0 | Anthropic API client |
-| google-generativeai | >=0.4.0 | Google Gemini client |
-| ollama | >=0.1.6 | Ollama client |
-| aiosmtplib | >=3.0.0 | Async SMTP |
-| imapclient | >=3.0.0 | IMAP client |
-| pyyaml | >=6.0.1 | YAML parsing |
-| python-dotenv | >=1.0.0 | Environment variables |
-| structlog | >=24.1.0 | Structured logging |
-| email-validator | >=2.1.0 | Email validation |
-| tenacity | >=8.2.3 | Retry logic |
-| aiofiles | >=23.2.1 | Async file operations |
+| Package             | Version  | Purpose               |
+| ------------------- | -------- | --------------------- |
+| openai              | >=1.12.0 | OpenAI API client     |
+| anthropic           | >=0.18.0 | Anthropic API client  |
+| google-generativeai | >=0.4.0  | Google Gemini client  |
+| ollama              | >=0.1.6  | Ollama client         |
+| aiosmtplib          | >=3.0.0  | Async SMTP            |
+| imapclient          | >=3.0.0  | IMAP client           |
+| pyyaml              | >=6.0.1  | YAML parsing          |
+| python-dotenv       | >=1.0.0  | Environment variables |
+| structlog           | >=24.1.0 | Structured logging    |
+| email-validator     | >=2.1.0  | Email validation      |
+| tenacity            | >=8.2.3  | Retry logic           |
+| aiofiles            | >=23.2.1 | Async file operations |
 
 ---
 
@@ -383,4 +396,3 @@ cat email.eml | mail-agent --dry-run
 ## License
 
 MIT License - Copyright (C) 2024 Viktor Zambo
-

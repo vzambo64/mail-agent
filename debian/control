@@ -23,4 +23,3 @@ Description: AI-powered automatic email reply agent for Postfix
   - Send immediately or save to IMAP Drafts for review
   - Custom system prompts per rule
   - Comprehensive logging and error handling
-

@@ -70,9 +70,12 @@ chmod 755 "${BUILD_DIR}/DEBIAN/postrm"
 chmod 755 "${BUILD_DIR}/opt/mail-agent/scripts/"*.sh
 chmod 600 "${BUILD_DIR}/etc/mail-agent/.env"
 
-# Calculate installed size
+# Calculate installed size and add to control file
+# In Debian control files, blank lines separate package stanzas - we must avoid them
 INSTALLED_SIZE=$(du -sk "${BUILD_DIR}" | cut -f1)
-echo "Installed-Size: $INSTALLED_SIZE" >> "${BUILD_DIR}/DEBIAN/control"
+# Read file content, strip trailing whitespace/newlines, add Installed-Size
+CONTROL_CONTENT=$(cat "${BUILD_DIR}/DEBIAN/control")
+printf '%s\nInstalled-Size: %s\n' "$CONTROL_CONTENT" "$INSTALLED_SIZE" > "${BUILD_DIR}/DEBIAN/control"
 
 # Build package
 echo "Building Debian package..."
